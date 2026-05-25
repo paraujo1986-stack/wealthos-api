@@ -230,6 +230,7 @@ body {
 .tx-amount.expense { color: var(--danger); }
 .tx-actions { display: flex; gap: 3px; opacity: 0; transition: var(--transition); }
 .tx-item:hover .tx-actions { opacity: 1; }
+@media (hover: none) { .tx-actions { opacity: 1; } } /* touch devices: always visible */
 
 /* ============================================================
    ALERTS & TAGS
@@ -622,6 +623,41 @@ body {
 /* ============================================================
    RESPONSIVE
    ============================================================ */
+
+/* ── Hamburger button (mobile only) ── */
+.hamburger-btn {
+  display: none; background: var(--card); border: 1px solid var(--border);
+  color: var(--text); border-radius: var(--radius-sm); width: 38px; height: 38px;
+  font-size: 1.1rem; cursor: pointer; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Mobile sidebar overlay backdrop ── */
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  z-index: 200; backdrop-filter: blur(2px);
+}
+.sidebar-overlay.open { display: block; }
+
+/* ── Bottom navigation (mobile only) ── */
+.bottom-nav {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  z-index: 150; padding: 6px 0 env(safe-area-inset-bottom, 6px);
+}
+.bottom-nav-items { display: flex; justify-content: space-around; }
+.bottom-nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 12px; cursor: pointer; color: var(--text-muted);
+  font-size: 0.6rem; font-weight: 600; border-radius: 8px;
+  transition: var(--transition); text-transform: uppercase; letter-spacing: 0.3px;
+  min-width: 56px;
+}
+.bottom-nav-item .bnav-icon { font-size: 1.25rem; line-height: 1; }
+.bottom-nav-item.active { color: var(--primary); }
+.bottom-nav-item.active .bnav-icon { filter: drop-shadow(0 0 6px var(--primary)); }
+
+/* ── Tablet (sidebar collapses to icons) ── */
 @media (max-width: 900px) {
   .sidebar { width: 58px; min-width: 58px; }
   .logo-text, .logo-sub, .logo-version, .nav-item span:not(.nav-icon), .user-name, .user-role, .sidebar-label, .nav-badge { display: none; }
@@ -634,8 +670,75 @@ body {
   .content { padding: 14px; }
   .topbar { padding: 11px 14px; }
 }
-@media (max-width: 600px) {
+
+/* ── Mobile (sidebar hidden, bottom nav shown) ── */
+@media (max-width: 640px) {
+  /* Layout */
+  body { overflow: hidden; }
+  .sidebar {
+    position: fixed; left: -260px; top: 0; bottom: 0; width: 240px !important; min-width: 240px !important;
+    z-index: 250; transition: left 0.28s cubic-bezier(0.4,0,0.2,1);
+  }
+  .sidebar.mobile-open { left: 0; }
+  /* Restore sidebar content hidden on tablet */
+  .sidebar.mobile-open .logo-text,
+  .sidebar.mobile-open .logo-sub,
+  .sidebar.mobile-open .logo-version,
+  .sidebar.mobile-open .nav-item span:not(.nav-icon),
+  .sidebar.mobile-open .user-name,
+  .sidebar.mobile-open .user-role,
+  .sidebar.mobile-open .sidebar-label { display: initial; }
+  .sidebar.mobile-open .sidebar-logo { padding: 18px 20px 14px; justify-content: flex-start; }
+  .sidebar.mobile-open .nav-item { justify-content: flex-start; padding: 8px 12px; }
+  .sidebar.mobile-open .user-chip,
+  .sidebar.mobile-open .theme-toggle { justify-content: flex-start; }
+
+  /* Hamburger visible */
+  .hamburger-btn { display: flex; }
+
+  /* Topbar compact */
+  .topbar { padding: 10px 12px; gap: 8px; }
+  .topbar-left { gap: 8px; }
+  .topbar-title { font-size: 0.95rem; }
+  .topbar-sub { display: none; }
+  .btn-invest { display: none; }
+  .topbar-actions .btn-primary { padding: 7px 13px; font-size: 0.8rem; }
+
+  /* Content fills full width, with bottom nav space */
+  .main { width: 100%; }
+  .content { padding: 12px; padding-bottom: 76px; }
+
+  /* Grids */
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .grid-chart { grid-template-columns: 1fr; }
+  .grid-chart-3 { grid-template-columns: 1fr; }
+
+  /* Bottom nav visible */
+  .bottom-nav { display: block; }
+
+  /* Modals: sheet style from bottom */
+  .modal-backdrop { align-items: flex-end; }
+  .modal {
+    width: 100% !important; max-width: 100% !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    max-height: 92vh; transform: translateY(100%) !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .modal-backdrop.open .modal { transform: translateY(0) !important; }
+
+  /* Transaction action buttons always visible on mobile */
+  .tx-actions { opacity: 1 !important; }
+  .tx-item { padding: 12px 10px; }
+
+  /* KPI cards: 2 columns on mobile */
+  .grid-4 { grid-template-columns: repeat(2,1fr) !important; }
+  .kpi-value { font-size: 1.2rem; }
+
+  /* Wallet cards full width */
+  .wallet-card { min-width: 0; }
+
+  /* Touch-friendly buttons */
+  .btn-icon { min-width: 36px; min-height: 36px; }
 }
 </style>
 </head>
@@ -695,6 +798,7 @@ body {
 <main class="main">
   <div class="topbar">
     <div class="topbar-left">
+      <button class="hamburger-btn" onclick="App.toggleMobileMenu()" title="Menu">☰</button>
       <div>
         <div class="topbar-title" id="topbarTitle">Overview</div>
         <div class="topbar-sub" id="topbarSub">Maio 2026</div>
@@ -1463,6 +1567,35 @@ body {
 
 
 <!-- ============================================================
+     MOBILE: sidebar overlay backdrop
+============================================================ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="App.closeMobileMenu()"></div>
+
+<!-- ============================================================
+     MOBILE: bottom navigation bar
+============================================================ -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bottom-nav-items">
+    <div class="bottom-nav-item active" data-view="overview" onclick="App.navigate('overview');App.closeMobileMenu()">
+      <span class="bnav-icon">📊</span><span>Overview</span>
+    </div>
+    <div class="bottom-nav-item" data-view="transacoes" onclick="App.navigate('transacoes');App.closeMobileMenu()">
+      <span class="bnav-icon">📋</span><span>Transações</span>
+    </div>
+    <div class="bottom-nav-item" onclick="App.openNewTransaction()" style="color:var(--primary)">
+      <span class="bnav-icon" style="background:var(--primary);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-top:-12px;box-shadow:0 4px 16px var(--primary-glow)">+</span>
+      <span>Novo</span>
+    </div>
+    <div class="bottom-nav-item" data-view="gastos" onclick="App.navigate('gastos');App.closeMobileMenu()">
+      <span class="bnav-icon">💸</span><span>Gastos</span>
+    </div>
+    <div class="bottom-nav-item" data-view="carteiras" onclick="App.navigate('carteiras');App.closeMobileMenu()">
+      <span class="bnav-icon">🏦</span><span>Contas</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================================
      MODAL: PIN SYNC — Acesso com código partilhado
 ============================================================ -->
 <div class="modal-backdrop" id="modalPin" style="display:none;z-index:2000">
@@ -2122,6 +2255,22 @@ const Wallets = {
     State.transfers.push({ id: Utils.uid(), from, to, amount, desc, date: new Date().toISOString().slice(0,10) });
     State.save(); App.closeModal('modalTransfer'); App.refresh();
     UI.toast(`Transferência de ${Utils.fmtEur(amount)} efetuada.`, 'success');
+  },
+
+  editBalanceInline(id, el) {
+    const w = Utils.getWalletById(id); if (!w) return;
+    const orig = el.textContent;
+    const color = el.style.color;
+    el.innerHTML = `<input type="number" step="0.01" value="${w.balance}" style="width:120px;padding:4px 8px;border-radius:6px;border:2px solid var(--primary);background:var(--input-bg);color:var(--text);font-size:1.2rem;font-weight:700;outline:none" id="_inlineBalInput">`;
+    const inp = el.querySelector('input');
+    inp.focus(); inp.select();
+    const commit = () => {
+      const v = parseFloat(inp.value);
+      if (!isNaN(v)) { w.balance = v; State.save(); App.refresh(); UI.toast('Saldo actualizado.', 'success'); }
+      else { el.style.color = color; el.textContent = orig; }
+    };
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', e => { if (e.key==='Enter') { inp.blur(); } if (e.key==='Escape') { el.style.color=color; el.textContent=orig; } });
   },
 
   deleteWallet(id) {
@@ -3525,11 +3674,12 @@ const Dashboards = {
               <div class="wallet-icon" style="background:${w.color}20">${Utils.esc(w.icon)}</div>
               <div style="flex:1"><div class="wallet-name">${Utils.esc(w.name)}</div><div class="wallet-type">${typeL[w.type]||w.type}</div></div>
             </div>
-            <div class="wallet-balance" style="color:${w.color}">${Utils.fmtEur(w.balance)}</div>
+            <div class="wallet-balance" style="color:${w.color};cursor:pointer" title="Clica para editar saldo" onclick="Wallets.editBalanceInline('${w.id}',this)">${Utils.fmtEur(w.balance)}</div>
             ${hasGoal?`<div class="wallet-goal">Objetivo: ${Utils.fmtEur(w.goal)} · ${Utils.fmtPct(p)}</div><div class="progress-bar"><div class="progress-fill ${c}" style="width:${p}%"></div></div>`:''}
             <div style="display:flex;gap:6px;margin-top:12px">
               <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="App.openTransfer('${w.id}')">↔ Transferir</button>
-              <button class="btn btn-ghost btn-sm btn-icon" onclick="Wallets.openEdit('${w.id}')" title="Editar conta">✏️</button>              <button class="btn btn-ghost btn-sm btn-icon" onclick="Wallets.deleteWallet('${w.id}')" title="Eliminar conta">🗑</button>
+              <button class="btn btn-ghost btn-sm btn-icon" onclick="Wallets.openEdit('${w.id}')" title="Editar conta">✏️</button>
+              <button class="btn btn-ghost btn-sm btn-icon" onclick="Wallets.deleteWallet('${w.id}')" title="Eliminar conta">🗑</button>
             </div>
           </div>`;
         }).join('')
@@ -3920,7 +4070,7 @@ const Dashboards = {
     const filterUser = document.getElementById('txFilterUser')?.value || 'all';
     const filterCat  = document.getElementById('txFilterCat')?.value  || 'all';
 
-    let txs = Transactions.getForMonth(m, y);
+    let txs = Transactions.forMonth(m, y);
     if (filterType !== 'all') txs = txs.filter(t=>t.type===filterType);
     if (filterUser !== 'all') txs = txs.filter(t=>t.user===filterUser);
     if (filterCat  !== 'all') txs = txs.filter(t=>t.catId===filterCat);
@@ -3931,7 +4081,7 @@ const Dashboards = {
       { label:'Receitas',  value:Utils.fmtEur(s.income),  icon:'📥', type:'success' },
       { label:'Despesas',  value:Utils.fmtEur(s.expense), icon:'📤', type:'danger'  },
       { label:'Saldo',     value:Utils.fmtEur(s.balance), icon:'💰', type: s.balance>=0?'success':'danger' },
-      { label:'Movimentos',value:s.count,                 icon:'📋', type:'primary' },
+      { label:'Movimentos',value:txs.length,              icon:'📋', type:'primary' },
     ]);
 
     UI.populateCategorySelect('txFilterCat', null);
@@ -4125,10 +4275,23 @@ const App = {
     this.navigate('categoria-detalhe');
   },
 
+  toggleMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('open');
+  },
+  closeMobileMenu() {
+    document.getElementById('sidebar')?.classList.remove('mobile-open');
+    document.getElementById('sidebarOverlay')?.classList.remove('open');
+  },
+
   navigate(view) {
     this._view = view;
     document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.view===view));
     document.querySelectorAll('.view').forEach(el=>el.classList.toggle('active', el.id===`view-${view}`));
+    // sync bottom nav
+    document.querySelectorAll('.bottom-nav-item[data-view]').forEach(el=>el.classList.toggle('active', el.dataset.view===view));
     const titles = {
       'overview':['Overview','Visão geral'],
       'gastos':['Gastos','Análise de despesas'],
@@ -4284,210 +4447,4 @@ const App = {
     this.openModal('modalGoalContrib');
   },
 
-  openSimulation() {
-    const s=State.settings;
-    document.getElementById('simExtraSavings').value=s.simExtraSavings||0;
-    document.getElementById('simReduceExpenses').value=s.simReduceExpenses||0;
-    const h=document.getElementById('simHorizon'); h.value=s.simHorizon||12;
-    document.getElementById('simHorizonVal').textContent=(s.simHorizon||12)+' meses';
-    this.openModal('modalSimulation');
-  },
-
-  switchUser() {
-    const users=['Pedro','Raquel'], cur=State.current.meta.activeUser||'Pedro';
-    const next=users[(users.indexOf(cur)+1)%users.length];
-    State.current.meta.activeUser=next; State.save();
-    document.getElementById('userAvatar').textContent=next[0];
-    document.getElementById('userName').textContent=next;
-    const chip=document.querySelector('.user-chip');
-    chip.style.background='var(--primary-dim)';
-    setTimeout(()=>chip.style.background='',400);
-  },
-
-  toggleTheme() {
-    const html=document.documentElement;
-    const isDark=html.getAttribute('data-theme')==='dark';
-    const next=isDark?'light':'dark';
-    html.setAttribute('data-theme',next);
-    State.current.settings.theme=next; State.save();
-    Charts.destroyAll();
-    setTimeout(()=>this.refresh(), 50);
-  },
-
-  initModalClose() {
-    document.querySelectorAll('.modal-backdrop').forEach(b=>b.addEventListener('click',e=>{if(e.target===b)b.classList.remove('open');}));
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'));});
-  },
-
-  _initSyncStatus() {
-    const topbar = document.querySelector('.topbar');
-    if (!topbar || document.getElementById('syncStatus')) return;
-    const el = document.createElement('span');
-    el.id = 'syncStatus';
-    el.style.cssText = 'font-size:0.72rem;color:var(--text-muted);opacity:0;transition:opacity 0.4s;margin-right:8px;white-space:nowrap';
-    const chip = topbar.querySelector('.user-chip');
-    if (chip) topbar.insertBefore(el, chip);
-    else topbar.appendChild(el);
-  },
-
-  _updateSyncBtn() { PinSync._updateBtn(); },
-
-  async init() {
-    const cached = Storage.load();
-    const theme = cached?.settings?.theme || 'dark';
-    document.documentElement.setAttribute('data-theme', theme);
-
-    this.initModalClose();
-    this._initSyncStatus();
-
-    await State.init();
-
-    const finalTheme = State.current.settings?.theme || 'dark';
-    document.documentElement.setAttribute('data-theme', finalTheme);
-
-    const { currentMonth:m, currentYear:y } = State.ui;
-    const lbl = new Date(y,m-1).toLocaleDateString('pt-PT',{month:'short',year:'numeric'});
-    document.getElementById('monthLabel').textContent = lbl.charAt(0).toUpperCase()+lbl.slice(1);
-
-    const user = State.current.meta?.activeUser || 'Pedro';
-    document.getElementById('userAvatar').textContent = user[0];
-    document.getElementById('userName').textContent = user;
-
-    if (DataProvider.isOnlineMode) DataProvider._showSyncStatus('ok');
-
-    this.navigate('overview');
-    PinSync._updateBtn();
-    Prices.autoRefresh();
-
-    console.log('WealthOS v3 ✅', {
-      mode: DataProvider.isOnlineMode ? 'online' : 'local',
-      transactions: State.transactions.length,
-      investmentTransactions: State.investmentTransactions.length,
-      wallets: State.wallets.length,
-      theme: finalTheme,
-    });
-  },
-};
-
-// ============================================================
-// MODULE: PINSYNC — PIN-based sync (Sprint 10)
-// ============================================================
-const PinSync = {
-  show() {
-    const errEl = document.getElementById('pinError');
-    if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
-    const pinEl = document.getElementById('pinInput');
-    if (pinEl) pinEl.value = '';
-    App.openModal('modalPin');
-    setTimeout(() => document.getElementById('pinInput')?.focus(), 80);
-  },
-
-  async connect() {
-    const pin = (document.getElementById('pinInput')?.value || '').trim();
-    const errEl = document.getElementById('pinError');
-    if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
-    if (!pin || pin.length < 4) {
-      if (errEl) { errEl.textContent = 'PIN com mínimo 4 dígitos.'; errEl.style.display = 'block'; }
-      return;
-    }
-    const btn = document.getElementById('pinBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'A ligar...'; }
-    try {
-      await DataProvider.loginWithPin(pin);
-      App.closeModal('modalPin');
-      const data = await DataProvider.load();
-      if (data) {
-        State.current = data;
-        State._version++;
-        App.markDirty();
-        App.refresh();
-      }
-      this._updateBtn();
-      UI.toast('Sincronização ativa ✅', 'success');
-    } catch (e) {
-      if (errEl) { errEl.textContent = e.message || 'Erro ao ligar ao servidor.'; errEl.style.display = 'block'; }
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Ligar'; }
-    }
-  },
-
-  disconnect() {
-    DataProvider._clearSession();
-    this._updateBtn();
-    UI.toast('Sincronização desativada. Modo local.', 'info');
-  },
-
-  _updateBtn() {
-    const lbl = document.getElementById('syncNavLabel');
-    const btn = document.getElementById('syncNavBtn');
-    if (!lbl || !btn) return;
-    if (DataProvider.isOnlineMode) {
-      lbl.textContent = '✅ Sincronizado';
-      btn.style.color = 'var(--success)';
-    } else if (DataProvider._token) {
-      lbl.textContent = '⚠️ Sessão expirada';
-      btn.style.color = 'var(--warning)';
-    } else {
-      lbl.textContent = 'Sincronizar';
-      btn.style.color = '';
-    }
-  },
-};
-
-// ============================================================
-// MODULE: CONFLICT — Data conflict resolution UI
-// ============================================================
-const Conflict = {
-  keepLocal() {
-    App.closeModal('modalConflict');
-    DataProvider._lastChecksum = null;
-    DataProvider._pendingData = State.current;
-    DataProvider._push();
-    UI.toast('Dados locais mantidos e enviados para o servidor.', 'info');
-  },
-
-  useServer() {
-    App.closeModal('modalConflict');
-    DataProvider._lastChecksum = null;
-    DataProvider.load().then(data => {
-      if (data) {
-        State.current = data;
-        State._version++;
-        App.markDirty();
-        App.refresh();
-        UI.toast('Dados do servidor carregados com sucesso.', 'success');
-      }
-    });
-  },
-};
-
-// ============================================================
-// BEFOREUNLOAD
-// ============================================================
-window.addEventListener('beforeunload', () => {
-  if (!DataProvider._pendingData) return;
-  clearTimeout(DataProvider._syncTimer);
-  Storage.save(DataProvider._pendingData);
-  if (DataProvider.isOnlineMode) {
-    try {
-      fetch(`${DataProvider._apiBase}/wealthos-data`, {
-        method: 'PUT',
-        headers: DataProvider._headers(),
-        body: JSON.stringify({
-          data: DataProvider._pendingData,
-          version: DataProvider._pendingData?.meta?.version || '3.0',
-          lastChecksum: DataProvider._lastChecksum,
-        }),
-        keepalive: true,
-      });
-    } catch (_) {}
-  }
-});
-
-// ============================================================
-// BOOT
-// ============================================================
-document.addEventListener('DOMContentLoaded', () => App.init());
-</script>
-</body>
-</html>
+  openSimul
