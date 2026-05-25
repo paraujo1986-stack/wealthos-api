@@ -4447,4 +4447,210 @@ const App = {
     this.openModal('modalGoalContrib');
   },
 
-  openSimul
+  openSimulation() {
+    const s=State.settings;
+    document.getElementById('simExtraSavings').value=s.simExtraSavings||0;
+    document.getElementById('simReduceExpenses').value=s.simReduceExpenses||0;
+    const h=document.getElementById('simHorizon'); h.value=s.simHorizon||12;
+    document.getElementById('simHorizonVal').textContent=(s.simHorizon||12)+' meses';
+    this.openModal('modalSimulation');
+  },
+
+  switchUser() {
+    const users=['Pedro','Raquel'], cur=State.current.meta.activeUser||'Pedro';
+    const next=users[(users.indexOf(cur)+1)%users.length];
+    State.current.meta.activeUser=next; State.save();
+    document.getElementById('userAvatar').textContent=next[0];
+    document.getElementById('userName').textContent=next;
+    const chip=document.querySelector('.user-chip');
+    chip.style.background='var(--primary-dim)';
+    setTimeout(()=>chip.style.background='',400);
+  },
+
+  toggleTheme() {
+    const html=document.documentElement;
+    const isDark=html.getAttribute('data-theme')==='dark';
+    const next=isDark?'light':'dark';
+    html.setAttribute('data-theme',next);
+    State.current.settings.theme=next; State.save();
+    Charts.destroyAll();
+    setTimeout(()=>this.refresh(), 50);
+  },
+
+  initModalClose() {
+    document.querySelectorAll('.modal-backdrop').forEach(b=>b.addEventListener('click',e=>{if(e.target===b)b.classList.remove('open');}));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'));});
+  },
+
+  _initSyncStatus() {
+    const topbar = document.querySelector('.topbar');
+    if (!topbar || document.getElementById('syncStatus')) return;
+    const el = document.createElement('span');
+    el.id = 'syncStatus';
+    el.style.cssText = 'font-size:0.72rem;color:var(--text-muted);opacity:0;transition:opacity 0.4s;margin-right:8px;white-space:nowrap';
+    const chip = topbar.querySelector('.user-chip');
+    if (chip) topbar.insertBefore(el, chip);
+    else topbar.appendChild(el);
+  },
+
+  _updateSyncBtn() { PinSync._updateBtn(); },
+
+  async init() {
+    const cached = Storage.load();
+    const theme = cached?.settings?.theme || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+
+    this.initModalClose();
+    this._initSyncStatus();
+
+    await State.init();
+
+    const finalTheme = State.current.settings?.theme || 'dark';
+    document.documentElement.setAttribute('data-theme', finalTheme);
+
+    const { currentMonth:m, currentYear:y } = State.ui;
+    const lbl = new Date(y,m-1).toLocaleDateString('pt-PT',{month:'short',year:'numeric'});
+    document.getElementById('monthLabel').textContent = lbl.charAt(0).toUpperCase()+lbl.slice(1);
+
+    const user = State.current.meta?.activeUser || 'Pedro';
+    document.getElementById('userAvatar').textContent = user[0];
+    document.getElementById('userName').textContent = user;
+
+    if (DataProvider.isOnlineMode) DataProvider._showSyncStatus('ok');
+
+    this.navigate('overview');
+    PinSync._updateBtn();
+    Prices.autoRefresh();
+
+    console.log('WealthOS v3 ✅', {
+      mode: DataProvider.isOnlineMode ? 'online' : 'local',
+      transactions: State.transactions.length,
+      investmentTransactions: State.investmentTransactions.length,
+      wallets: State.wallets.length,
+      theme: finalTheme,
+    });
+  },
+};
+
+// ============================================================
+// MODULE: PINSYNC — PIN-based sync (Sprint 10)
+// ============================================================
+const PinSync = {
+  show() {
+    const errEl = document.getElementById('pinError');
+    if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
+    const pinEl = document.getElementById('pinInput');
+    if (pinEl) pinEl.value = '';
+    App.openModal('modalPin');
+    setTimeout(() => document.getElementById('pinInput')?.focus(), 80);
+  },
+
+  async connect() {
+    const pin = (document.getElementById('pinInput')?.value || '').trim();
+    const errEl = document.getElementById('pinError');
+    if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
+    if (!pin || pin.length < 4) {
+      if (errEl) { errEl.textContent = 'PIN com mínimo 4 dígitos.'; errEl.style.display = 'block'; }
+      return;
+    }
+    const btn = document.getElementById('pinBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'A ligar...'; }
+    try {
+      await DataProvider.loginWithPin(pin);
+      App.closeModal('modalPin');
+      const data = await DataProvider.load();
+      if (data) {
+        State.current = data;
+        State._version++;
+        App.markDirty();
+        App.refresh();
+      }
+      this._updateBtn();
+      UI.toast('Sincronização ativa ✅', 'success');
+    } catch (e) {
+      if (errEl) { errEl.textContent = e.message || 'Erro ao ligar ao servidor.'; errEl.style.display = 'block'; }
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Ligar'; }
+    }
+  },
+
+  disconnect() {
+    DataProvider._clearSession();
+    this._updateBtn();
+    UI.toast('Sincronização desativada. Modo local.', 'info');
+  },
+
+  _updateBtn() {
+    const lbl = document.getElementById('syncNavLabel');
+    const btn = document.getElementById('syncNavBtn');
+    if (!lbl || !btn) return;
+    if (DataProvider.isOnlineMode) {
+      lbl.textContent = '✅ Sincronizado';
+      btn.style.color = 'var(--success)';
+    } else if (DataProvider._token) {
+      lbl.textContent = '⚠️ Sessão expirada';
+      btn.style.color = 'var(--warning)';
+    } else {
+      lbl.textContent = 'Sincronizar';
+      btn.style.color = '';
+    }
+  },
+};
+
+// ============================================================
+// MODULE: CONFLICT — Data conflict resolution UI
+// ============================================================
+const Conflict = {
+  keepLocal() {
+    App.closeModal('modalConflict');
+    DataProvider._lastChecksum = null;
+    DataProvider._pendingData = State.current;
+    DataProvider._push();
+    UI.toast('Dados locais mantidos e enviados para o servidor.', 'info');
+  },
+
+  useServer() {
+    App.closeModal('modalConflict');
+    DataProvider._lastChecksum = null;
+    DataProvider.load().then(data => {
+      if (data) {
+        State.current = data;
+        State._version++;
+        App.markDirty();
+        App.refresh();
+        UI.toast('Dados do servidor carregados com sucesso.', 'success');
+      }
+    });
+  },
+};
+
+// ============================================================
+// BEFOREUNLOAD
+// ============================================================
+window.addEventListener('beforeunload', () => {
+  if (!DataProvider._pendingData) return;
+  clearTimeout(DataProvider._syncTimer);
+  Storage.save(DataProvider._pendingData);
+  if (DataProvider.isOnlineMode) {
+    try {
+      fetch(`${DataProvider._apiBase}/wealthos-data`, {
+        method: 'PUT',
+        headers: DataProvider._headers(),
+        body: JSON.stringify({
+          data: DataProvider._pendingData,
+          version: DataProvider._pendingData?.meta?.version || '3.0',
+          lastChecksum: DataProvider._lastChecksum,
+        }),
+        keepalive: true,
+      });
+    } catch (_) {}
+  }
+});
+
+// ============================================================
+// BOOT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
