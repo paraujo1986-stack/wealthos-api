@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Household ────────────────────────────────────────────────────
+// Uma família / casal partilha o mesmo household.
+// Os dados financeiros pertencem ao household, não ao utilizador.
+
+model Household {
+  id          String     @id @default(cuid())
+  name        String
+  inviteCode  String     @unique @default(cuid())
+  users       User[]
+  snapshots   Snapshot[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// ── User ─────────────────────────────────────────────────────────
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  passwordHash  String
+  householdId   String
+  household     Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([householdId])
+}
+
+// ── Snapshot ─────────────────────────────────────────────────────
+// Estado completo da app serializado como JSON.
+// Estratégia snapshot-first: simples, segura, reversível.
+// Migrar para tabelas normalizadas futuramente se necessário.
+
+model Snapshot {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  version     String    @default("3.0")
+  data        Json
+  checksum    String
+  size        Int       @default(0)  // tamanho em bytes — para monitorização
+  createdBy   String                 // userId de quem guardou
+  createdAt   DateTime  @default(now())
+
+  @@index([householdId, createdAt(sort: Desc)])
+  @@index([checksum])
+}
+
+// ── RefreshToken ─────────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

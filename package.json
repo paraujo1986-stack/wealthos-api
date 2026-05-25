@@ -1,0 +1,28 @@
+{
+  "name": "wealthos-api",
+  "version": "1.0.0",
+  "description": "WealthOS backend — Node.js + Express + Prisma + PostgreSQL",
+  "type": "module",
+  "engines": { "node": ">=20.0.0" },
+  "scripts": {
+    "dev":          "node --watch src/server.js",
+    "start":        "node src/server.js",
+    "db:push":      "prisma db push",
+    "db:migrate":   "prisma migrate deploy",
+    "db:generate":  "prisma generate",
+    "db:studio":    "prisma studio",
+    "db:seed":      "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client":    "^5.12.0",
+    "bcryptjs":          "^2.4.3",
+    "cors":              "^2.8.5",
+    "dotenv":            "^16.4.5",
+    "express":           "^4.19.2",
+    "express-rate-limit":"^7.2.0",
+    "helmet":            "^7.1.0",
+    "jsonwebtoken":      "^9.0.2",
+    "prisma":            "^5.12.0",
+    "zod":               "^3.22.4"
+  }
+}
