@@ -722,9 +722,14 @@ body {
     width: 100% !important; max-width: 100% !important;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
     max-height: 92vh; transform: translateY(100%) !important;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px)) !important;
   }
   .modal-backdrop.open .modal { transform: translateY(0) !important; }
+  /* Better form fields on mobile */
+  .form-control { padding: 11px 13px !important; font-size: 1rem !important; min-height: 44px; }
+  .form-row { grid-template-columns: 1fr !important; }
+  .modal-footer { flex-direction: column-reverse; gap: 8px; }
+  .modal-footer .btn { width: 100%; justify-content: center; padding: 13px !important; font-size: 0.95rem !important; }
 
   /* Transaction action buttons always visible on mobile */
   .tx-actions { opacity: 1 !important; }
@@ -936,16 +941,30 @@ body {
 
     <!-- VIEW: TRANSAÇÕES -->
     <div class="view" id="view-transacoes">
-      <div class="section-header">
-        <div><div class="section-title">Transações</div><div class="section-sub" id="txCount">0 transações este mês</div></div>
-        <div style="display:flex;gap:8px">
-          <select class="form-control" style="width:auto;padding:7px 11px;font-size:0.8rem" id="txFilterType" onchange="UI.renderTransactions()">
-            <option value="all">Todos</option><option value="income">Receitas</option><option value="expense">Despesas</option>
-          </select>
-          <button class="btn btn-primary" onclick="App.openNewTransaction()">+ Nova</button>
+      <div class="grid-4 mb-4" id="txKpis"></div>
+      <div class="chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+          <div><div class="section-title">Histórico</div><div class="section-sub" id="txCount"></div></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <select class="form-control" style="width:auto;padding:6px 10px;font-size:0.78rem" id="txFilterType" onchange="UI.renderTransactions()">
+              <option value="all">Todos os tipos</option>
+              <option value="income">Receitas</option>
+              <option value="expense">Despesas</option>
+            </select>
+            <select class="form-control" style="width:auto;padding:6px 10px;font-size:0.78rem" id="txFilterUser" onchange="UI.renderTransactions()">
+              <option value="all">Todos</option>
+              <option value="Pedro">Pedro</option>
+              <option value="Raquel">Raquel</option>
+              <option value="Conjunto">Conjunto</option>
+            </select>
+            <select class="form-control" style="width:auto;padding:6px 10px;font-size:0.78rem" id="txFilterCat" onchange="UI.renderTransactions()">
+              <option value="all">Todas as categorias</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="App.openNewTransaction()">+ Nova</button>
+          </div>
         </div>
+        <div class="tx-list" id="txList"></div>
       </div>
-      <div class="chart-card"><div class="tx-list" id="allTxList"></div></div>
     </div>
 
     <!-- VIEW: ORÇAMENTO -->
@@ -1331,8 +1350,8 @@ body {
     </div>
     <div class="confirm-modal-msg" id="confirmMsg"></div>
     <div class="confirm-modal-actions">
-      <button class="btn btn-ghost" id="confirmCancelBtn" onclick="App.closeModal('modalConfirm')">Cancelar</button>
-      <button class="btn btn-danger" id="confirmOkBtn">Confirmar</button>
+      <button class="btn btn-ghost" id="confirmCancel">Cancelar</button>
+      <button class="btn btn-danger" id="confirmOk">Confirmar</button>
     </div>
   </div>
 </div>
@@ -4084,11 +4103,20 @@ const Dashboards = {
       { label:'Movimentos',value:txs.length,              icon:'📋', type:'primary' },
     ]);
 
+    // Rebuild category filter keeping current selection
+    const catSel = document.getElementById('txFilterCat');
+    const prevCat = catSel ? catSel.value : 'all';
     UI.populateCategorySelect('txFilterCat', null);
-    document.getElementById('txFilterCat').insertAdjacentHTML('afterbegin','<option value="all">Todas as categorias</option>');
+    if (catSel) { catSel.insertAdjacentHTML('afterbegin','<option value="all">Todas as categorias</option>'); catSel.value = prevCat; }
 
+    // Update subtitle count
+    const countEl = document.getElementById('txCount');
+    if (countEl) countEl.textContent = `${txs.length} transaç${txs.length===1?'ão':'ões'} · ${Utils.monthName(m,y)}`;
+
+    const listEl = document.getElementById('txList');
+    if (!listEl) return;
     if (!txs.length) {
-      document.getElementById('txList').innerHTML = `<div class="empty-state" style="padding:40px 24px">
+      listEl.innerHTML = `<div class="empty-state" style="padding:40px 24px">
         <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="12" y="8" width="40" height="48" rx="6" stroke="currentColor" stroke-width="2.5" fill="none"/>
           <path d="M22 22h20M22 30h20M22 38h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -4099,7 +4127,7 @@ const Dashboards = {
       </div>`;
       return;
     }
-    document.getElementById('txList').innerHTML = txs.map(t => UI.txRow(t, true)).join('');
+    listEl.innerHTML = txs.map(t => UI.txRow(t, true)).join('');
   },
 };
 
